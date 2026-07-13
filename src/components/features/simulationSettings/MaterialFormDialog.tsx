@@ -14,6 +14,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { Material } from "@/types/material";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { CreateMaterialCategory } from "./CreateMaterialCategory";
+import { useSelector } from "react-redux";
+import type { RootState } from "@/store";
+import { toast } from "sonner";
 
 type IProps = {
   isOpen: boolean;
@@ -50,6 +61,8 @@ export function MaterialFormDialog({
     category: "",
     absorptionCoefficients: [0.01, 0.04, 0.14, 0.47, 0.88, 0.53, 0.26],
   });
+  const [selectOpen, setSelectOpen] = useState(false);
+  const materialCategories = useSelector((state: RootState) => state.material.maerialCategories);
 
   useEffect(() => {
     if (material) {
@@ -99,6 +112,14 @@ export function MaterialFormDialog({
     }
   };
 
+  const handleCreateMaterialCategory = (name: string) => {
+    setSelectOpen(false);
+    toast.success(`Category "${name}" selected`);
+    setTimeout(() => {
+      setFormData({ ...formData, category: name });
+    }, 500);
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpen}>
       {isShownTrigger && (
@@ -125,15 +146,28 @@ export function MaterialFormDialog({
               placeholder="Material name"
             />
           </div>
+
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="category">Category</Label>
-            <Input
-              id="category"
+            <Label htmlFor="category-select">Category</Label>
+            <Select
               value={formData.category}
-              onChange={(e) => handleInputChange("category", e.target.value)}
-              className="col-span-3"
-              placeholder="Material category"
-            />
+              onValueChange={(val) => handleInputChange("category", val)}
+              disabled={isLoading}
+              open={selectOpen}
+              onOpenChange={setSelectOpen}
+            >
+              <SelectTrigger id="category-select" className="col-span-3 w-full">
+                <SelectValue placeholder="Select a category" />
+              </SelectTrigger>
+              <SelectContent>
+                {materialCategories.map((category) => (
+                  <SelectItem key={category} value={category}>
+                    {category}
+                  </SelectItem>
+                ))}
+                <CreateMaterialCategory onCreate={handleCreateMaterialCategory} />
+              </SelectContent>
+            </Select>
           </div>
           <div className="grid grid-cols-4 items-start gap-4">
             <Label htmlFor="description" className="text-right mt-2">

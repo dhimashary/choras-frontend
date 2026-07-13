@@ -18,9 +18,10 @@ import {
 import type { Material } from "@/types/material";
 import { MaterialFormDialog } from "./MaterialFormDialog";
 import { toast } from "sonner";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import type { RootState } from "@/store";
 import { useUpdateSimulationMutation } from "@/store/simulationApi";
+import { syncCategoriesFromMaterials } from "@/store/materialSlice";
 
 type IProps = {
   openMaterialLibrary: boolean;
@@ -53,6 +54,8 @@ export function SurfaceMaterialList({
     material.name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
+  const dispatch = useDispatch();
+
   useEffect(() => {
     if (openCreateMaterialDialog) {
       setSelectedMaterial(null);
@@ -62,6 +65,11 @@ export function SurfaceMaterialList({
       setOpenMaterialForm(true);
     }
   }, [openCreateMaterialDialog]);
+
+  useEffect(() => {
+    const categories = materials.map((m) => m.category).filter(Boolean);
+    dispatch(syncCategoriesFromMaterials(categories));
+  }, [materials]);
 
   const handleCreate = async (material: Omit<Material, "id" | "createdAt" | "updatedAt">) => {
     try {

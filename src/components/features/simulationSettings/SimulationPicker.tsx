@@ -21,7 +21,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { setSelectedMethodType, setSelectedResourceType } from "@/store/simulationSettingsSlice";
 import { setActiveSimulation } from "@/store/simulationSlice";
 import type { RootState } from "@/store";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -57,6 +57,10 @@ export function SimulationPicker({ modelId, simulationId }: SimulationPickerProp
   const { duplicateSimulation } = useDuplicateSimulation();
   const [menuOpen, setMenuOpen] = useState(false);
   const { isRunning } = useSimulationRunner();
+  const [selectedMethodLocal, setSelectedMethodLocal] = useState<string>("DE");
+  const latestMethodRef = useRef<string>("DE");
+  const prevSimulationIdRef = useRef<number | undefined>(undefined);
+  const isInitializingMethodRef = useRef(false);
 
   const [updateSimulation] = useUpdateSimulationMutation();
   const selectedMethodType = useSelector(
@@ -67,9 +71,59 @@ export function SimulationPicker({ modelId, simulationId }: SimulationPickerProp
   );
   const { initializeSettings } = useInitializeSimulationSettings();
 
-  const handleMethodChange = async (methodType: string) => {
-    dispatch(setSelectedMethodType(methodType));
+  useEffect(() => {
+    dispatch(setSelectedMethodType(selectedMethodLocal));
+    latestMethodRef.current = selectedMethodLocal;
 
+    if (isInitializingMethodRef.current) {
+      isInitializingMethodRef.current = false;
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      handleMethodChange(selectedMethodLocal);
+    }, 200);
+
+    return () => clearTimeout(timer);
+  }, [selectedMethodLocal]);
+
+  useEffect(() => {
+    if (simulationId && simulations) {
+      const currentSimulation = simulations.find((sim) => sim.id === simulationId);
+      if (currentSimulation) {
+        dispatch(setActiveSimulation(currentSimulation));
+
+        if (simulationId !== prevSimulationIdRef.current && currentSimulation.simulationMethod) {
+          isInitializingMethodRef.current = true;
+          setSelectedMethodLocal(currentSimulation.simulationMethod);
+          latestMethodRef.current = currentSimulation.simulationMethod;
+        }
+        prevSimulationIdRef.current = simulationId;
+
+        if (currentSimulation.sources.length > 0) {
+          currentSimulation.sources.forEach((source) => {
+            dispatch(addSource(source));
+          });
+        } else {
+          dispatch(removeAllSources());
+        }
+
+        if (currentSimulation.receivers.length > 0) {
+          currentSimulation.receivers.forEach((receiver) => {
+            dispatch(addReceiver(receiver));
+          });
+        } else {
+          dispatch(removeAllReceivers());
+        }
+
+        if (currentSimulation.resourceType) {
+          dispatch(setSelectedResourceType(currentSimulation.resourceType));
+        }
+      }
+    }
+  }, [simulationId, simulations, dispatch]);
+
+  const handleMethodChange = async (methodType: string) => {
     if (simulationId && simulations) {
       const currentSimulation = simulations.find((sim) => sim.id === simulationId);
       if (currentSimulation) {
@@ -87,10 +141,13 @@ export function SimulationPicker({ modelId, simulationId }: SimulationPickerProp
             },
           }).unwrap();
 
+          if (latestMethodRef.current !== methodType) return;
+
           await initializeSettings(updatedSimulation, methodType);
 
           toast.success("Method updated and settings initialized");
         } catch (error) {
+          if (latestMethodRef.current !== methodType) return;
           console.error("Failed to update simulation method:", error);
           toast.error("Failed to update method");
         }
@@ -138,51 +195,7 @@ export function SimulationPicker({ modelId, simulationId }: SimulationPickerProp
     navigate(`/editor/${modelId}/${simulationId}`);
   };
 
-  useEffect(() => {
-    if (simulationId && simulations) {
-      const currentSimulation = simulations.find((sim) => sim.id === simulationId);
-      if (currentSimulation) {
-        dispatch(setActiveSimulation(currentSimulation));
-
-        if (
-          currentSimulation.simulationMethod &&
-          currentSimulation.simulationMethod !== selectedMethodType
-        ) {
-          dispatch(setSelectedMethodType(currentSimulation.simulationMethod));
-        }
-
-        if (currentSimulation.sources.length > 0) {
-          currentSimulation.sources.forEach((source) => {
-            dispatch(addSource(source));
-          });
-        } else {
-          dispatch(removeAllSources());
-        }
-
-        if (currentSimulation.receivers.length > 0) {
-          currentSimulation.receivers.forEach((receiver) => {
-            dispatch(addReceiver(receiver));
-          });
-        } else {
-          dispatch(removeAllReceivers());
-        }
-
-        if (currentSimulation.resourceType) {
-          dispatch(setSelectedResourceType(currentSimulation.resourceType));
-        }
-      }
-    }
-  }, [simulationId, simulations, dispatch, selectedMethodType]);
-
-  if (!simulations || simulations.length === 0 || isLoading || methodsLoading) {
-    return (
-      <Button variant="secondary" className="justify-start">
-        Loading...
-      </Button>
-    );
-  }
-
-  const activeSimulation = simulations.find((sim) => sim.id === simulationId);
+  const activeSimulation = simulations?.find((sim) => sim.id === simulationId);
 
   const selectedMethod = methods?.find((method) => method.simulationType === selectedMethodType);
 
@@ -193,7 +206,7 @@ export function SimulationPicker({ modelId, simulationId }: SimulationPickerProp
         modelId: modelId,
       }).unwrap();
 
-      if (simulations.length === 1) {
+      if (simulations?.length === 1) {
         await getSimulationsByModelId(modelId).unwrap();
         navigate(`/editor/${modelId}`, { replace: true });
       }
@@ -218,6 +231,14 @@ export function SimulationPicker({ modelId, simulationId }: SimulationPickerProp
       setMenuOpen(false);
     }
   };
+
+  if (!simulations || simulations.length === 0 || isLoading || methodsLoading) {
+    return (
+      <Button variant="secondary" className="justify-start">
+        Loading...
+      </Button>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -319,7 +340,10 @@ export function SimulationPicker({ modelId, simulationId }: SimulationPickerProp
           Method
         </label>
         <div className="col-span-2 flex">
-          <Select value={selectedMethodType} onValueChange={handleMethodChange}>
+          <Select
+            value={selectedMethodLocal}
+            onValueChange={(text) => setSelectedMethodLocal(text)}
+          >
             <SelectTrigger className="bg-choras-dark text-white border-choras-gray [&>svg]:text-choras-gray min-w-[calc(100%-36px)]">
               <SelectValue>
                 {selectedMethod ? selectedMethod.label.replace("method", "") : "Select a method"}
