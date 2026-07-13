@@ -42,9 +42,26 @@ export const geometrySelectionSlice = createSlice({
       }
     },
 
+    addHighlightedMeshes: (state, action: PayloadAction<THREE.Mesh[]>) => {
+      const existingUuids = new Set(state.highlightedMeshes.map((m) => m.uuid));
+      action.payload.forEach((mesh) => {
+        if (!existingUuids.has(mesh.uuid)) {
+          existingUuids.add(mesh.uuid);
+          state.highlightedMeshes.push(mesh);
+        }
+      });
+    },
+
     removeHighlightedMesh: (state, action: PayloadAction<THREE.Mesh>) => {
       const meshUuid = action.payload.uuid;
       state.highlightedMeshes = state.highlightedMeshes.filter((mesh) => mesh.uuid !== meshUuid);
+    },
+
+    removeHighlightedMeshes: (state, action: PayloadAction<string[]>) => {
+      const uuidsToRemove = new Set(action.payload);
+      state.highlightedMeshes = state.highlightedMeshes.filter(
+        (mesh) => !uuidsToRemove.has(mesh.uuid),
+      );
     },
 
     addSelectedGeometry: (state, action: PayloadAction<SelectedGeometry>) => {
@@ -54,9 +71,23 @@ export const geometrySelectionSlice = createSlice({
       }
     },
 
+    addSelectedGeometries: (state, action: PayloadAction<SelectedGeometry[]>) => {
+      action.payload.forEach((geometry) => {
+        if (geometry.materialId) {
+          state.selectedGeometries[geometry.mesh.uuid] = geometry;
+        }
+      });
+    },
+
     removeSelectedGeometry: (state, action: PayloadAction<string>) => {
       const meshUuid = action.payload;
       delete state.selectedGeometries[meshUuid];
+    },
+
+    removeSelectedGeometries: (state, action: PayloadAction<string[]>) => {
+      action.payload.forEach((meshUuid) => {
+        delete state.selectedGeometries[meshUuid];
+      });
     },
 
     clearSelectedGeometries: (state) => {
@@ -73,10 +104,14 @@ export const {
   selectGeometry,
   clearSelection,
   addHighlightedMesh,
+  addHighlightedMeshes,
   removeHighlightedMesh,
+  removeHighlightedMeshes,
   clearHighlights,
   addSelectedGeometry,
+  addSelectedGeometries,
   removeSelectedGeometry,
+  removeSelectedGeometries,
   clearSelectedGeometries,
 } = geometrySelectionSlice.actions;
 

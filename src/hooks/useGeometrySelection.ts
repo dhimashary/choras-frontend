@@ -6,10 +6,14 @@ import {
   selectGeometry as selectGeometryAction,
   clearSelection as clearSelectionAction,
   addHighlightedMesh as addHighlightedMeshAction,
+  addHighlightedMeshes as addHighlightedMeshesAction,
   removeHighlightedMesh as removeHighlightedMeshAction,
+  removeHighlightedMeshes as removeHighlightedMeshesAction,
   clearHighlights as clearHighlightsAction,
   addSelectedGeometry as addSelectedGeometryAction,
+  addSelectedGeometries as addSelectedGeometriesAction,
   removeSelectedGeometry as removeSelectedGeometryAction,
+  removeSelectedGeometries as removeSelectedGeometriesAction,
   clearSelectedGeometries as clearSelectedGeometriesAction,
 } from "@/store/geometrySelectionSlice";
 import type { SelectedGeometry } from "@/store/geometrySelectionSlice";
@@ -47,6 +51,20 @@ export function useGeometrySelection() {
     [dispatch],
   );
 
+  const addHighlightedMeshes = useCallback(
+    (meshes: THREE.Mesh[]) => {
+      dispatch(addHighlightedMeshesAction(meshes));
+    },
+    [dispatch],
+  );
+
+  const removeHighlightedMeshes = useCallback(
+    (meshUuids: string[]) => {
+      dispatch(removeHighlightedMeshesAction(meshUuids));
+    },
+    [dispatch],
+  );
+
   const clearHighlights = useCallback(() => {
     dispatch(clearHighlightsAction());
   }, [dispatch]);
@@ -58,9 +76,23 @@ export function useGeometrySelection() {
     [dispatch],
   );
 
+  const addSelectedGeometries = useCallback(
+    (geometries: SelectedGeometry[]) => {
+      dispatch(addSelectedGeometriesAction(geometries));
+    },
+    [dispatch],
+  );
+
   const removeSelectedGeometry = useCallback(
     (materialId: string) => {
       dispatch(removeSelectedGeometryAction(materialId));
+    },
+    [dispatch],
+  );
+
+  const removeSelectedGeometries = useCallback(
+    (meshUuids: string[]) => {
+      dispatch(removeSelectedGeometriesAction(meshUuids));
     },
     [dispatch],
   );
@@ -75,10 +107,14 @@ export function useGeometrySelection() {
     selectGeometry,
     clearSelection,
     addHighlightedMesh,
+    addHighlightedMeshes,
     removeHighlightedMesh,
+    removeHighlightedMeshes,
     clearHighlights,
     addSelectedGeometry,
+    addSelectedGeometries,
     removeSelectedGeometry,
+    removeSelectedGeometries,
     selectedGeometries,
     clearSelectedGeometries,
   };
