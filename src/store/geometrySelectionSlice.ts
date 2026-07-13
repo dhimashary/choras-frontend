@@ -1,7 +1,12 @@
 import { createSlice } from "@reduxjs/toolkit";
 import type { PayloadAction } from "@reduxjs/toolkit";
-import * as THREE from "three";
+import type * as THREE from "three";
 
+/**
+ * Public, mesh-based geometry shape used by components and the
+ * `useGeometrySelection` hook API. Meshes are resolved from the mesh registry;
+ * they are never stored in Redux.
+ */
 export interface SelectedGeometry {
   mesh: THREE.Mesh;
   faceIndex: number;
@@ -9,15 +14,23 @@ export interface SelectedGeometry {
   materialId?: string;
 }
 
+/** Serializable form actually stored in Redux state. */
+export interface SerializableGeometry {
+  meshUuid: string;
+  faceIndex: number;
+  point: { x: number; y: number; z: number };
+  materialId?: string;
+}
+
 interface GeometrySelectionState {
-  selectedGeometry: SelectedGeometry | null;
-  highlightedMeshes: THREE.Mesh[];
-  selectedGeometries: Record<string, SelectedGeometry>;
+  selectedGeometry: SerializableGeometry | null;
+  highlightedMeshUuids: string[];
+  selectedGeometries: Record<string, SerializableGeometry>;
 }
 
 const initialState: GeometrySelectionState = {
   selectedGeometry: null,
-  highlightedMeshes: [],
+  highlightedMeshUuids: [],
   selectedGeometries: {},
 };
 
@@ -25,7 +38,7 @@ export const geometrySelectionSlice = createSlice({
   name: "geometrySelection",
   initialState,
   reducers: {
-    selectGeometry: (state, action: PayloadAction<SelectedGeometry | null>) => {
+    selectGeometry: (state, action: PayloadAction<SerializableGeometry | null>) => {
       state.selectedGeometry = action.payload;
     },
 
@@ -34,47 +47,46 @@ export const geometrySelectionSlice = createSlice({
       state.selectedGeometries = {};
     },
 
-    addHighlightedMesh: (state, action: PayloadAction<THREE.Mesh>) => {
-      const mesh = action.payload;
-      const exists = state.highlightedMeshes.find((m) => m.uuid === mesh.uuid);
-      if (!exists) {
-        state.highlightedMeshes.push(mesh);
+    addHighlightedMesh: (state, action: PayloadAction<string>) => {
+      const uuid = action.payload;
+      if (!state.highlightedMeshUuids.includes(uuid)) {
+        state.highlightedMeshUuids.push(uuid);
       }
     },
 
-    addHighlightedMeshes: (state, action: PayloadAction<THREE.Mesh[]>) => {
-      const existingUuids = new Set(state.highlightedMeshes.map((m) => m.uuid));
-      action.payload.forEach((mesh) => {
-        if (!existingUuids.has(mesh.uuid)) {
-          existingUuids.add(mesh.uuid);
-          state.highlightedMeshes.push(mesh);
+    addHighlightedMeshes: (state, action: PayloadAction<string[]>) => {
+      const existing = new Set(state.highlightedMeshUuids);
+      action.payload.forEach((uuid) => {
+        if (!existing.has(uuid)) {
+          existing.add(uuid);
+          state.highlightedMeshUuids.push(uuid);
         }
       });
     },
 
-    removeHighlightedMesh: (state, action: PayloadAction<THREE.Mesh>) => {
-      const meshUuid = action.payload.uuid;
-      state.highlightedMeshes = state.highlightedMeshes.filter((mesh) => mesh.uuid !== meshUuid);
+    removeHighlightedMesh: (state, action: PayloadAction<string>) => {
+      const uuid = action.payload;
+      state.highlightedMeshUuids = state.highlightedMeshUuids.filter((id) => id !== uuid);
     },
 
     removeHighlightedMeshes: (state, action: PayloadAction<string[]>) => {
       const uuidsToRemove = new Set(action.payload);
-      state.highlightedMeshes = state.highlightedMeshes.filter(
-        (mesh) => !uuidsToRemove.has(mesh.uuid),
+      state.highlightedMeshUuids = state.highlightedMeshUuids.filter(
+        (uuid) => !uuidsToRemove.has(uuid),
       );
     },
 
-    addSelectedGeometry: (state, action: PayloadAction<SelectedGeometry>) => {
+    addSelectedGeometry: (state, action: PayloadAction<SerializableGeometry>) => {
       const geometry = action.payload;
       if (geometry.materialId) {
-        state.selectedGeometries[geometry.mesh.uuid] = geometry;
+        state.selectedGeometries[geometry.meshUuid] = geometry;
       }
     },
 
-    addSelectedGeometries: (state, action: PayloadAction<SelectedGeometry[]>) => {
+    addSelectedGeometries: (state, action: PayloadAction<SerializableGeometry[]>) => {
       action.payload.forEach((geometry) => {
         if (geometry.materialId) {
-          state.selectedGeometries[geometry.mesh.uuid] = geometry;
+          state.selectedGeometries[geometry.meshUuid] = geometry;
         }
       });
     },
@@ -95,7 +107,7 @@ export const geometrySelectionSlice = createSlice({
     },
 
     clearHighlights: (state) => {
-      state.highlightedMeshes = [];
+      state.highlightedMeshUuids = [];
     },
   },
 });

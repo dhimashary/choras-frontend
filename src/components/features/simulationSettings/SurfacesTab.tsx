@@ -11,7 +11,9 @@ import * as THREE from "three";
 import type { RootState } from "@/store";
 import {
   assignMaterial,
+  assignMaterials,
   removeMaterialAssignment,
+  removeMaterialAssignments,
   clearAllAssignments,
   setAssignments,
 } from "@/store/materialAssignmentSlice";
@@ -94,6 +96,8 @@ export function SurfacesTab() {
   const [hiddenSurfaces, setHiddenSurfaces] = useState<Set<string>>(new Set());
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const {
+    selectedGeometry,
+    selectedGeometries,
     selectGeometry,
     addHighlightedMesh,
     addHighlightedMeshes,
@@ -118,9 +122,6 @@ export function SurfacesTab() {
   const activeSimulation = useSelector((state: RootState) => state.simulation.activeSimulation);
   const currentModelId = useSelector((state: RootState) => state.model.currentModelId);
   const highlightedElement = useSelector((state: RootState) => state.tab.highlightedElement);
-  const { selectedGeometry, selectedGeometries } = useSelector(
-    (state: RootState) => state.geometrySelection,
-  );
   const { data: simulation, error: simulationError } = useGetSimulationByIdQuery(
     activeSimulation?.id ?? 0,
     {
@@ -283,13 +284,13 @@ export function SurfacesTab() {
 
       surfaces.forEach((surface) => {
         const surfaceKey = surface.id;
-        dispatch(assignMaterial({ meshId: surfaceKey, materialId: numMaterialId }));
         newAssignments[surfaceKey] = numMaterialId;
 
         if (surface.mesh) {
           setMeshBaseColor(surface.mesh, absorptionColor);
         }
       });
+      dispatch(assignMaterials({ meshIds: surfaces.map((s) => s.id), materialId: numMaterialId }));
       updatedAssignments = { ...materialAssignments, ...newAssignments };
     }
 
@@ -306,12 +307,12 @@ export function SurfacesTab() {
 
     if (materialId === "default") {
       groupSurfaces.forEach((surface) => {
-        dispatch(removeMaterialAssignment(surface.id));
         delete updatedAssignments[surface.id];
         if (surface.mesh) {
           setMeshBaseColor(surface.mesh, 0xffffff);
         }
       });
+      dispatch(removeMaterialAssignments(groupSurfaces.map((s) => s.id)));
     } else {
       const numMaterialId = parseInt(materialId);
       const material = materialById.get(numMaterialId);
@@ -321,12 +322,14 @@ export function SurfacesTab() {
       const absorptionColor = getAbsorptionColor(avgAbsorption);
 
       groupSurfaces.forEach((surface) => {
-        dispatch(assignMaterial({ meshId: surface.id, materialId: numMaterialId }));
         updatedAssignments[surface.id] = numMaterialId;
         if (surface.mesh) {
           setMeshBaseColor(surface.mesh, absorptionColor);
         }
       });
+      dispatch(
+        assignMaterials({ meshIds: groupSurfaces.map((s) => s.id), materialId: numMaterialId }),
+      );
     }
 
     updateSimulationData(updatedAssignments);
@@ -604,15 +607,16 @@ export function SurfacesTab() {
     (surface: SurfaceInfo) => {
       // Restore/deselect every currently highlighted geometry (e.g. all
       // surfaces of an expanded group) so a plain click keeps only the clicked
-      // surface highlighted and clears the rest.
-      Object.values(selectedGeometries).forEach((geo) => {
-        removeHighlightedMesh(geo.mesh);
-        restoreOriginalColor(geo.mesh);
-      });
+      // surface highlighted and clears the rest. Restoring mesh colors is a
+      // cheap direct mutation; the Redux highlight removal is batched into a
+      // single dispatch to avoid a store update per surface.
+      const uuidsToClear = new Set(Object.keys(selectedGeometries));
+      Object.values(selectedGeometries).forEach((geo) => restoreOriginalColor(geo.mesh));
       if (selectedGeometry?.mesh) {
-        removeHighlightedMesh(selectedGeometry.mesh);
+        uuidsToClear.add(selectedGeometry.mesh.uuid);
         restoreOriginalColor(selectedGeometry.mesh);
       }
+      removeHighlightedMeshes(Array.from(uuidsToClear));
 
       // Highlight and select new mesh
       const payload = {
@@ -634,7 +638,7 @@ export function SurfacesTab() {
       highlightMesh,
       HIGHLIGHT_COLOR,
       addHighlightedMesh,
-      removeHighlightedMesh,
+      removeHighlightedMeshes,
       restoreOriginalColor,
       clearSelectedGeometries,
       addSelectedGeometry,
@@ -694,15 +698,17 @@ export function SurfacesTab() {
     if (materialId === "default") {
       const numMaterialId = parseInt(materialId);
       const newAssignments: Record<string, number> = {};
+      const assignedIds: string[] = [];
 
       surfaces.forEach((surface) => {
         if (selectedGeometries[surface.mesh.uuid]) {
           const surfaceKey = surface.id;
-          dispatch(assignMaterial({ meshId: surfaceKey, materialId: numMaterialId }));
+          assignedIds.push(surfaceKey);
           newAssignments[surfaceKey] = numMaterialId;
           setMeshBaseColor(surface.mesh, 0xffffff);
         }
       });
+      dispatch(assignMaterials({ meshIds: assignedIds, materialId: numMaterialId }));
 
       updatedAssignments = { ...materialAssignments, ...newAssignments };
     } else {
@@ -713,14 +719,16 @@ export function SurfacesTab() {
         : 0;
       const absorptionColor = getAbsorptionColor(avgAbsorption);
 
+      const assignedIds: string[] = [];
       surfaces.forEach((surface) => {
         if (selectedGeometries[surface.mesh.uuid]) {
           const surfaceKey = surface.id;
-          dispatch(assignMaterial({ meshId: surfaceKey, materialId: numMaterialId }));
+          assignedIds.push(surfaceKey);
           newAssignments[surfaceKey] = numMaterialId;
           setMeshBaseColor(surface.mesh, absorptionColor);
         }
       });
+      dispatch(assignMaterials({ meshIds: assignedIds, materialId: numMaterialId }));
 
       updatedAssignments = { ...materialAssignments, ...newAssignments };
     }

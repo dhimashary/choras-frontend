@@ -42,19 +42,8 @@ export const store = configureStore({
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {
-        ignoredActions: [
-          "model/storeRhinoFile",
-          "geometrySelection/selectGeometry",
-          "geometrySelection/addHighlightedMesh",
-          "geometrySelection/removeHighlightedMesh",
-          "auralizationApi/executeQuery/fulfilled",
-        ],
-        ignoredPaths: [
-          "model.rhinoFiles",
-          "geometrySelection.selectedGeometry",
-          "geometrySelection.highlightedMeshes",
-          auralizationApi.reducerPath,
-        ],
+        ignoredActions: ["model/storeRhinoFile", "auralizationApi/executeQuery/fulfilled"],
+        ignoredPaths: ["model.rhinoFiles", auralizationApi.reducerPath],
       },
     }).concat(
       projectApi.middleware,
