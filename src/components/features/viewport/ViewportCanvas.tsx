@@ -30,6 +30,7 @@ import {
 import { GeometryIssueLayer } from "../GeometryIssueLayer";
 import { useCameraFocusOnIssue } from "@/hooks/useCameraFocusOnIssue";
 import { useGetSimulationRunsQuery } from "@/store/simulationApi";
+import { Camera, Grid3X3, Layers3 } from "lucide-react";
 
 export function ViewportCanvas({
   modelUrl,
@@ -109,30 +110,40 @@ export function ViewportCanvas({
           </div>
         )}
 
-        <Select
-          value={viewMode}
-          onValueChange={(value) => setViewMode(value as "solid" | "ghosted" | "wireframe")}
-        >
-          <SelectTrigger className="absolute top-2 right-2 z-10 cursor-pointer text-sm w-30 border-white text-white [&>svg]:stroke-white hover:text-white hover:bg-white/50">
-            <SelectValue placeholder="View Mode" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="solid">Solid</SelectItem>
-            <SelectItem value="ghosted">Ghosted</SelectItem>
-            <SelectItem value="wireframe">Wireframe</SelectItem>
-          </SelectContent>
-        </Select>
-        <Button
-          onClick={toggleCameraType}
-          variant="outline"
-          size="sm"
-          className="absolute top-14 right-2 z-10 cursor-pointer hover:bg-white/50 border-white text-white hover:text-white"
-        >
-          <span className="hidden sm:inline">
-            {cameraType === "perspective" ? "Perspective" : "Orthographic"}
-          </span>
-          <span className="sm:hidden">{cameraType === "perspective" ? "Persp" : "Ortho"}</span>
-        </Button>
+        <div className="absolute right-3 top-3 z-20 w-40 rounded-md border border-slate-200 bg-white/95 p-2.5 text-slate-800 shadow-lg backdrop-blur-sm">
+          <div className="mb-2">
+            <span className="mb-1 block text-[10px] font-bold uppercase text-slate-500">
+              Display mode
+            </span>
+            <Select
+              value={viewMode}
+              onValueChange={(value) => setViewMode(value as "solid" | "ghosted" | "wireframe")}
+            >
+              <SelectTrigger
+                aria-label="Display mode"
+                className="h-9 w-full cursor-pointer border-slate-300 bg-white text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50 [&>svg]:stroke-slate-600"
+              >
+                <Layers3 className="h-4 w-4 shrink-0 text-choras-primary" />
+                <SelectValue placeholder="View mode" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="solid">Solid</SelectItem>
+                <SelectItem value="ghosted">Ghosted</SelectItem>
+                <SelectItem value="wireframe">Wireframe</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <span className="mb-1 block text-[10px] font-bold uppercase text-slate-500">Camera</span>
+          <Button
+            onClick={toggleCameraType}
+            variant="outline"
+            size="sm"
+            className="w-full cursor-pointer justify-start gap-2 border-slate-300 bg-white font-semibold text-slate-800 shadow-sm hover:bg-slate-50 hover:text-slate-900"
+          >
+            <Camera className="h-4 w-4 shrink-0 text-choras-primary" />
+            <span>{cameraType === "perspective" ? "Perspective" : "Orthographic"}</span>
+          </Button>
+        </div>
         <Canvas
           key={cameraType}
           camera={{
@@ -196,7 +207,7 @@ export function ViewportCanvas({
             maxDistance={1000}
             zoomSpeed={0.5}
           />
-          <GizmoHelper alignment="top-right" margin={[60, 150]}>
+          <GizmoHelper alignment="top-left" margin={[70, 70]}>
             <GizmoViewport axisColors={["#EF7305", "#F4B183", "#FBE5D6"]} labelColor="black" />
           </GizmoHelper>
 
@@ -217,10 +228,11 @@ export function ViewportCanvas({
       {/* Grid Info - Clickable */}
       <button
         onClick={openGridDialog}
-        className="absolute top-[200px] right-2 z-10 text-white text-xs pt-2 hover:bg-white/10 rounded px-2 py-1 transition-colors cursor-pointer"
+        className="absolute right-3 top-[200px] z-10 flex cursor-pointer items-start gap-2 rounded-md border border-slate-200 bg-white/95 px-3 py-2 text-left text-xs text-slate-700 shadow-md backdrop-blur-sm transition-colors hover:bg-white"
       >
+        <Grid3X3 className="mt-0.5 h-4 w-4 shrink-0 text-choras-primary" />
         <div className="space-y-0.5">
-          <div>
+          <div className="font-semibold">
             Major grid: {majorGridSize}x{majorGridSize}m
           </div>
           <div>

@@ -135,6 +135,12 @@ const geometryIssueSlice = createSlice({
       state,
       action: PayloadAction<{ groupKey: string; isExpanded: boolean }>,
     ) => {
+      if (action.payload.isExpanded) {
+        Object.keys(state.expandedIssueGroups).forEach((groupKey) => {
+          state.expandedIssueGroups[groupKey] = false;
+        });
+      }
+
       state.expandedIssueGroups[action.payload.groupKey] = action.payload.isExpanded;
     },
     clearGeometryIssues: (state) => {
