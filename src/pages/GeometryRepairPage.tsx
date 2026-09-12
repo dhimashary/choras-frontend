@@ -5,11 +5,104 @@ import { AppLayout } from "@/components/ui/app-layout";
 import { useParams } from "react-router";
 import { useDispatch, useSelector } from "react-redux";
 import { useEffect, useRef } from "react";
-import { OctagonAlert } from "lucide-react";
+import { CircleHelp, OctagonAlert } from "lucide-react";
 import { toast } from "sonner";
+import { driver } from "driver.js";
+import "driver.js/dist/driver.css";
 import { clearGeometryIssues, clearRemainingIssues } from "@/store/geometryIssueSlice";
 import { useGetModelQuery } from "@/store/modelApi";
 import type { RootState } from "@/store";
+
+const REPAIR_TOUR_HIDDEN_KEY = "choras:repair-tour-hidden:v1";
+
+const repairTourSteps = [
+  {
+    element: '[data-tour="initial-sidebar"]',
+    popover: {
+      title: "Your original model",
+      description:
+        "This sidebar summarizes issues found in the geometry you uploaded. The viewer beside it shows the unchanged original model.",
+      side: "right" as const,
+    },
+  },
+  {
+    element: '[data-tour="initial-viewer"]',
+    popover: {
+      title: "Original model viewer",
+      description: "Inspect and navigate your original 3D model here while reviewing its issues.",
+    },
+  },
+  {
+    element: '[data-tour="initial-simulation-methods"]',
+    popover: {
+      title: "Simulation compatibility",
+      description:
+        "Expand this section and select a simulation method. Its configuration updates the severity shown for every issue type, helping you see which issues block that method.",
+      side: "right" as const,
+    },
+  },
+  {
+    element: '[data-tour="initial-issues"]',
+    popover: {
+      title: "Detected geometry issues",
+      description:
+        "Issue types group the problems found in the original model. Expand a type, then click an issue to move the 3D camera to its location and highlight it.",
+      side: "right" as const,
+    },
+  },
+  {
+    element: '[data-tour="repaired-sidebar"]',
+    popover: {
+      title: "Your repaired model",
+      description:
+        "This sidebar reports the result of automatic repair. The viewer beside it shows the repaired version for comparison.",
+      side: "left" as const,
+    },
+  },
+  {
+    element: '[data-tour="repaired-viewer"]',
+    popover: {
+      title: "Repaired model viewer",
+      description: "Inspect the repaired 3D geometry here and compare it with the original model.",
+    },
+  },
+  {
+    element: '[data-tour="repaired-simulation-methods"]',
+    popover: {
+      title: "Repaired model compatibility",
+      description:
+        "Select a method to check whether the repaired geometry can be used for that simulation and to update issue severity.",
+      side: "left" as const,
+    },
+  },
+  {
+    element: '[data-tour="repaired-issues"]',
+    popover: {
+      title: "Remaining issues",
+      description:
+        "Problems that could not be fixed automatically appear here. Click an issue to locate and highlight it in the repaired model.",
+      side: "left" as const,
+    },
+  },
+  {
+    element: '[data-tour="repaired-model-actions"]',
+    popover: {
+      title: "Choose which model to use",
+      description:
+        "Accept the repaired model here, or use the original model from the left sidebar. An option is available only when at least one simulation method supports that model.",
+      side: "left" as const,
+    },
+  },
+  {
+    element: '[data-tour="download-repaired-model"]',
+    popover: {
+      title: "Download the repaired model",
+      description:
+        "Download the repaired geometry as an OBJ file for inspection or further editing.",
+      side: "left" as const,
+    },
+  },
+];
 
 export function GeometryRepairPage() {
   const { modelId } = useParams() as { modelId: string };
@@ -29,6 +122,50 @@ export function GeometryRepairPage() {
   // Track the last method we toasted for so a single selection never toasts
   // twice (e.g. from transient status transitions or StrictMode remounts).
   const lastToastedMethodId = useRef<string | number | null>(null);
+  const hasStartedTour = useRef(false);
+
+  const startRepairTour = () => {
+    const availableSteps = repairTourSteps.filter(({ element }) => document.querySelector(element));
+    let hideOnFutureVisits = localStorage.getItem(REPAIR_TOUR_HIDDEN_KEY) === "true";
+    const tour = driver({
+      animate: true,
+      overlayColor: "#0f172a",
+      overlayOpacity: 0.72,
+      showProgress: true,
+      allowClose: true,
+      nextBtnText: "Next",
+      prevBtnText: "Back",
+      doneBtnText: "Finish",
+      steps: availableSteps,
+      onPopoverRender: ({ footer }) => {
+        if (footer.querySelector('[data-tour-preference="hide"]')) return;
+
+        const preference = document.createElement("label");
+        preference.dataset.tourPreference = "hide";
+        preference.className = "mt-3 flex cursor-pointer items-center gap-2 text-xs text-slate-600";
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = hideOnFutureVisits;
+        checkbox.className = "h-4 w-4 accent-[var(--color-choras-primary)]";
+        checkbox.addEventListener("change", () => {
+          hideOnFutureVisits = checkbox.checked;
+        });
+
+        preference.append(checkbox, "Don't show this tutorial automatically again");
+        footer.append(preference);
+      },
+      onDestroyed: () => {
+        if (hideOnFutureVisits) {
+          localStorage.setItem(REPAIR_TOUR_HIDDEN_KEY, "true");
+        } else {
+          localStorage.removeItem(REPAIR_TOUR_HIDDEN_KEY);
+        }
+      },
+    });
+
+    tour.drive();
+  };
 
   useEffect(() => {
     return () => {
@@ -57,6 +194,20 @@ export function GeometryRepairPage() {
     }
   }, [selectedMethod?.id, isProcessing]);
 
+  useEffect(() => {
+    if (
+      isProcessing ||
+      hasStartedTour.current ||
+      localStorage.getItem(REPAIR_TOUR_HIDDEN_KEY) === "true"
+    ) {
+      return;
+    }
+
+    hasStartedTour.current = true;
+    const startTimer = window.setTimeout(startRepairTour, 500);
+    return () => window.clearTimeout(startTimer);
+  }, [isProcessing]);
+
   return (
     <AppLayout
       title="Repair Page"
@@ -65,13 +216,24 @@ export function GeometryRepairPage() {
       rightSidebar={<GeometryRepairSidebar />}
       showLeftSidebarToggle={true}
       showRightSidebarToggle={true}
+      right={
+        <button
+          type="button"
+          onClick={startRepairTour}
+          className="inline-flex h-9 w-9 cursor-pointer items-center justify-center text-choras-primary transition-colors hover:text-choras-primary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-choras-primary"
+          aria-label="Replay repair page tutorial"
+          title="Replay tutorial"
+        >
+          <CircleHelp className="h-5 w-5" />
+        </button>
+      }
     >
       <div className="h-full w-full flex">
-        <div className="flex-1 h-full">
+        <div className="flex-1 h-full" data-tour="initial-viewer">
           <ModelViewer modelId={modelId} showGeometrySelectionInfo={false} source="InitialIssue" />
         </div>
         <div className="w-1 bg-border h-full" />
-        <div className="flex-1 h-full">
+        <div className="flex-1 h-full" data-tour="repaired-viewer">
           <ModelViewer
             modelId={modelId}
             useClone

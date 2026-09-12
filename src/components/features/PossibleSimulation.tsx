@@ -102,7 +102,7 @@ export function PossibleSimulation({ modelId: modelIdProp, stage = "repaired", s
   };
 
   return (
-    <div className="mb-3">
+    <div className="mb-3" data-tour={`${stage}-simulation-methods`}>
       <button
         onClick={() => setIsExpanded((prev) => !prev)}
         className="flex w-full flex-col cursor-pointer items-start rounded-md border border-slate-300 bg-white/80 px-3 py-2 text-left"

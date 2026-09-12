@@ -1,7 +1,6 @@
 import { ChevronRight, CircleCheck, TriangleAlert, OctagonAlert } from "lucide-react";
 import { Fragment } from "react";
 import type { GeometryIssue, GeometryIssues } from "@/store/geometryIssueSlice";
-import { issuesMatch } from "@/store/geometryIssueSlice";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useSelector } from "react-redux";
 import type { RootState } from "@/store";
@@ -86,8 +85,15 @@ const ISSUE_CATEGORY_INFO: Record<string, { description: string; docsUrl: string
   },
 };
 
-const isSameIssue = (current: GeometryIssue | null, target: GeometryIssue) =>
-  issuesMatch(current, target);
+const isSameIssue = (current: GeometryIssue | null, target: GeometryIssue) => {
+  if (current?.id && target.id) {
+    return current.id === target.id;
+  }
+  return (
+    current?.type === target.type &&
+    JSON.stringify(current?.points) === JSON.stringify(target.points)
+  );
+};
 
 const getIssueRowClassName = (isSelected: boolean) => {
   const selectedClass =
@@ -166,7 +172,10 @@ export function GeometryIssueList({
   );
 
   return (
-    <div className="rounded-md border border-slate-300 bg-white/75 p-2 flex flex-col min-h-0 flex-1 h-full">
+    <div
+      className="rounded-md border border-slate-300 bg-white/75 p-2 flex flex-col min-h-0 flex-1 h-full"
+      data-tour={`${stage}-issues`}
+    >
       <div className="mb-3 mt-1 flex shrink-0 items-center justify-between rounded-md border border-slate-300 bg-white px-3 py-2">
         <h4 className="font-semibold tracking-wide text-choras-primary">
           {label ? label : "Issues"}

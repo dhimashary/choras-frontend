@@ -145,7 +145,10 @@ export default function GeometryIssueSidebar() {
   };
 
   return (
-    <div className="h-container flex flex-col border border-slate-300 bg-[#DCDCDC] p-1">
+    <div
+      className="h-container flex flex-col border border-slate-300 bg-[#DCDCDC] p-1"
+      data-tour="initial-sidebar"
+    >
       <div className="h-full flex flex-col rounded-md bg-white/65 text-slate-700 font-inter p-2">
         <div className="mb-3">
           <div className="flex w-full items-center justify-between border border-slate-300 rounded-t-md bg-choras-primary px-3 py-2 text-left">
@@ -187,7 +190,10 @@ export default function GeometryIssueSidebar() {
             <>
               <div className="mb-4 rounded-md border border-slate-300 bg-gradient-to-b from-white to-slate-100 p-3 shadow-[0_8px_18px_rgba(15,23,42,0.12)]">
                 <PossibleSimulation stage="initial" />
-                <div className="rounded-md border border-slate-300 bg-gradient-to-b from-white to-slate-100 p-2.5">
+                <div
+                  className="rounded-md border border-slate-300 bg-gradient-to-b from-white to-slate-100 p-2.5"
+                  data-tour="initial-model-action"
+                >
                   <div className="mx-auto mt-2 flex w-full max-w-md justify-center">
                     <TooltipProvider>
                       <Tooltip>
