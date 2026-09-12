@@ -51,6 +51,15 @@ const repairTourSteps = [
     },
   },
   {
+    element: '[data-tour="initial-issue-help"]',
+    popover: {
+      title: "Learn about an issue",
+      description:
+        "Hover over the question mark for a short explanation, or click it to open detailed documentation about that issue type.",
+      side: "right" as const,
+    },
+  },
+  {
     element: '[data-tour="repaired-sidebar"]',
     popover: {
       title: "Your repaired model",
@@ -81,6 +90,15 @@ const repairTourSteps = [
       title: "Remaining issues",
       description:
         "Problems that could not be fixed automatically appear here. Click an issue to locate and highlight it in the repaired model.",
+      side: "left" as const,
+    },
+  },
+  {
+    element: '[data-tour="repaired-issue-help"]',
+    popover: {
+      title: "Understand a remaining issue",
+      description:
+        "Use the question mark to preview an explanation or open the documentation for an issue that still needs attention.",
       side: "left" as const,
     },
   },
@@ -140,14 +158,21 @@ export function GeometryRepairPage() {
       onPopoverRender: ({ footer }) => {
         if (footer.querySelector('[data-tour-preference="hide"]')) return;
 
+        footer.style.display = "grid";
+        footer.style.gridTemplateColumns = "1fr auto";
+        footer.style.alignItems = "center";
+        footer.style.gap = "12px";
+
         const preference = document.createElement("label");
         preference.dataset.tourPreference = "hide";
-        preference.className = "mt-3 flex cursor-pointer items-center gap-2 text-xs text-slate-600";
+        preference.className =
+          "flex min-h-10 w-full cursor-pointer items-center gap-3 border-t border-slate-200 pt-3 text-sm font-medium leading-5 text-slate-700";
+        preference.style.gridColumn = "1 / -1";
 
         const checkbox = document.createElement("input");
         checkbox.type = "checkbox";
         checkbox.checked = hideOnFutureVisits;
-        checkbox.className = "h-4 w-4 accent-[var(--color-choras-primary)]";
+        checkbox.className = "h-5 w-5 shrink-0 cursor-pointer accent-[var(--color-choras-primary)]";
         checkbox.addEventListener("change", () => {
           hideOnFutureVisits = checkbox.checked;
         });

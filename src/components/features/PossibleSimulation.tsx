@@ -26,7 +26,7 @@ export function PossibleSimulation({ modelId: modelIdProp, stage = "repaired", s
   const params = useParams() as { modelId?: string };
   const modelId = modelIdProp ?? params.modelId ?? "";
 
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
   const dispatch = useDispatch();
 
   const selectedMethod = useSelector(
@@ -107,9 +107,20 @@ export function PossibleSimulation({ modelId: modelIdProp, stage = "repaired", s
         onClick={() => setIsExpanded((prev) => !prev)}
         className="flex w-full flex-col cursor-pointer items-start rounded-md border border-slate-300 bg-white/80 px-3 py-2 text-left"
       >
-        <h4 className="mb-2 text-sm font-semibold tracking-wide text-choras-primary">
+        <h4 className="text-sm font-semibold tracking-wide text-choras-primary">
           Simulation Method Compatibility
         </h4>
+        {!isExpanded && (
+          <div className="my-2 flex w-full min-w-0 flex-col gap-0.5 rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1.5">
+            <span className="text-[11px] font-medium text-slate-500">Selected method</span>
+            <span
+              className="min-w-0 whitespace-normal break-words text-xs font-semibold leading-4 text-choras-primary"
+              title={selectedMethod?.label ?? "No method selected"}
+            >
+              {selectedMethod?.label ?? "None"}
+            </span>
+          </div>
+        )}
         <div className="flex w-full items-center justify-between">
           <p className="text-[11px] text-slate-500">
             Select a simulation method to view its{" "}
@@ -128,7 +139,7 @@ export function PossibleSimulation({ modelId: modelIdProp, stage = "repaired", s
         </div>
       </button>
       {isExpanded && (
-        <div className="mt-2 rounded-md border border-slate-200 bg-white/60 px-3 py-3">
+        <div className="mt-2 max-h-40 overflow-y-auto rounded-md border border-slate-200 bg-white/60 px-3 py-3 pr-2 scrollbar-thin scrollbar-thumb-slate-400/80 scrollbar-track-transparent scrollbar-thumb-rounded-full">
           {isLoading ? (
             <p className="text-xs text-slate-500">Loading compatibility…</p>
           ) : isError ? (

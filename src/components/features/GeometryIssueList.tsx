@@ -286,6 +286,7 @@ export function GeometryIssueList({
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       onClick={(e) => e.stopPropagation()}
+                                      data-tour={`${stage}-issue-help`}
                                       className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-white text-[11px] font-bold text-slate-400 hover:border-choras-primary hover:text-choras-primary transition-colors"
                                     >
                                       ?
