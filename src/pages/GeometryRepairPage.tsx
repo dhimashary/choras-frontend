@@ -5,7 +5,8 @@ import { AppLayout } from "@/components/ui/app-layout";
 import { useParams } from "react-router";
 import { useDispatch, useSelector } from "react-redux";
 import { useEffect, useRef } from "react";
-import { CircleHelp, OctagonAlert } from "lucide-react";
+import { CircleCheck, CircleHelp, OctagonAlert, TriangleAlert } from "lucide-react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { toast } from "sonner";
 import { driver } from "driver.js";
 import "driver.js/dist/driver.css";
@@ -14,6 +15,25 @@ import { useGetModelQuery } from "@/store/modelApi";
 import type { RootState } from "@/store";
 
 const REPAIR_TOUR_HIDDEN_KEY = "choras:repair-tour-hidden:v1";
+
+const issueSeverityDescription = renderToStaticMarkup(
+  <div style={{ display: "grid", gap: 10, lineHeight: 1.4 }}>
+    <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+      <CircleCheck size={18} color="#16a34a" style={{ flexShrink: 0 }} />
+      <span>This issue type will not break the selected simulation method.</span>
+    </div>
+    <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+      <TriangleAlert size={18} color="#d97706" style={{ flexShrink: 0 }} />
+      <span>This issue may affect or break the selected method and should be reviewed.</span>
+    </div>
+    <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+      <OctagonAlert size={18} color="#dc2626" style={{ flexShrink: 0 }} />
+      <span>
+        This issue type is incompatible and must be resolved before using the selected method.
+      </span>
+    </div>
+  </div>,
+);
 
 const repairTourSteps = [
   {
@@ -42,6 +62,20 @@ const repairTourSteps = [
     },
   },
   {
+    element: '[data-tour="initial-simulation-method-item"]',
+    popover: {
+      title: "Compatibility labels",
+      description: `
+        <div style="display: grid; gap: 10px; line-height: 1.4;">
+          <div><strong style="color: #16a34a;">Supported</strong>: The model can be used with this simulation method.</div>
+          <div><strong style="color: #d97706;">Warning</strong>: The method can run, but detected issues may affect the result.</div>
+          <div><strong style="color: #dc2626;">Not Supported</strong>: The model has issues that prevent this simulation method from running.</div>
+        </div>
+      `,
+      side: "right" as const,
+    },
+  },
+  {
     element: '[data-tour="initial-issues"]',
     popover: {
       title: "Detected geometry issues",
@@ -56,6 +90,14 @@ const repairTourSteps = [
       title: "Learn about an issue",
       description:
         "Hover over the question mark for a short explanation, or click it to open detailed documentation about that issue type.",
+      side: "right" as const,
+    },
+  },
+  {
+    element: '[data-tour="initial-issue-severity"]',
+    popover: {
+      title: "Issue severity icons",
+      description: issueSeverityDescription,
       side: "right" as const,
     },
   },
@@ -94,20 +136,11 @@ const repairTourSteps = [
     },
   },
   {
-    element: '[data-tour="repaired-issue-help"]',
-    popover: {
-      title: "Understand a remaining issue",
-      description:
-        "Use the question mark to preview an explanation or open the documentation for an issue that still needs attention.",
-      side: "left" as const,
-    },
-  },
-  {
     element: '[data-tour="repaired-model-actions"]',
     popover: {
       title: "Choose which model to use",
       description:
-        "Accept the repaired model here, or use the original model from the left sidebar. An option is available only when at least one simulation method supports that model.",
+        "Accept the repaired model here, or use the original model from the left sidebar. This button is enabled only when at least one simulation method supports that model.",
       side: "left" as const,
     },
   },

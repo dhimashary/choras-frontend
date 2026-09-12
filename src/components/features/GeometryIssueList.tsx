@@ -135,7 +135,7 @@ const getCompatibilityIconInfo = (
         icon: <CircleCheck size={14} className="text-green-600" />,
         status: "Compatible",
         color: "text-green-600",
-        tooltip: "This issue type is compatible with the selected method",
+        tooltip: "This issue type will not break the selected simulation method.",
       };
     case "warning":
       return {
@@ -266,7 +266,10 @@ export function GeometryIssueList({
                                       return compatInfo ? (
                                         <Tooltip>
                                           <TooltipTrigger asChild>
-                                            <div className="flex items-center justify-center shrink-0">
+                                            <div
+                                              className="flex items-center justify-center shrink-0"
+                                              data-tour={`${stage}-issue-severity`}
+                                            >
                                               {compatInfo.icon}
                                             </div>
                                           </TooltipTrigger>

@@ -94,7 +94,7 @@ export function SimulationMethodList({ methods, stage = "repaired" }: Simulation
 
   return (
     <ul className="space-y-2">
-      {methods.map((method) => {
+      {methods.map((method, index) => {
         const styles = STATUS_STYLES[method.compatible] ?? STATUS_STYLES.unknown;
         const isSelected = selectedMethod?.id === method.id;
 
@@ -102,6 +102,7 @@ export function SimulationMethodList({ methods, stage = "repaired" }: Simulation
           <li
             key={method.id}
             onClick={() => handleMethodClick(method)}
+            data-tour={index === 0 ? `${stage}-simulation-method-item` : undefined}
             className={`flex items-center gap-3 rounded-md border px-3 py-2.5 cursor-pointer transition-all ${
               isSelected
                 ? "ring-2 ring-choras-primary/50 border-choras-primary bg-choras-primary/5"
