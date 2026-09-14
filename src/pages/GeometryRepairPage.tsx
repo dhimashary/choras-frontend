@@ -41,7 +41,7 @@ const repairTourSteps = [
     popover: {
       title: "Your original model",
       description:
-        "This sidebar summarizes issues found in the geometry you uploaded. The viewer beside it shows the unchanged original model.",
+        "This sidebar summarizes issues found in the geometry you uploaded, before any repairs were applied.",
       side: "right" as const,
     },
   },
@@ -68,7 +68,7 @@ const repairTourSteps = [
       description: `
         <div style="display: grid; gap: 10px; line-height: 1.4;">
           <div><strong style="color: #16a34a;">Supported</strong>: The model can be used with this simulation method.</div>
-          <div><strong style="color: #d97706;">Warning</strong>: The method can run, but detected issues may affect the result.</div>
+          <div><strong style="color: #d97706;">Warning</strong>: The method can run, but detected geometry issues may reduce the reliability of the simulation results.</div>
           <div><strong style="color: #dc2626;">Not Supported</strong>: The model has issues that prevent this simulation method from running.</div>
         </div>
       `,
@@ -102,6 +102,15 @@ const repairTourSteps = [
     },
   },
   {
+    element: '[data-tour="initial-model-action"]',
+    popover: {
+      title: "Use the initial model",
+      description:
+        "Choose this option to continue with your original geometry instead of the repaired version. This button is enabled only when at least one simulation method supports the initial model.",
+      side: "right" as const,
+    },
+  },
+  {
     element: '[data-tour="repaired-sidebar"]',
     popover: {
       title: "Your repaired model",
@@ -122,7 +131,7 @@ const repairTourSteps = [
     popover: {
       title: "Repaired model compatibility",
       description:
-        "Select a method to check whether the repaired geometry can be used for that simulation and to update issue severity.",
+        "Select a method to check whether the repaired geometry can be used with your preferred simulation method.",
       side: "left" as const,
     },
   },
@@ -199,8 +208,11 @@ export function GeometryRepairPage() {
         const preference = document.createElement("label");
         preference.dataset.tourPreference = "hide";
         preference.className =
-          "flex min-h-10 w-full cursor-pointer items-center gap-3 border-t border-slate-200 pt-3 text-sm font-medium leading-5 text-slate-700";
+          "flex min-h-10 w-full cursor-pointer items-center border-t border-slate-200 pt-3 text-sm font-medium leading-5 text-slate-700";
         preference.style.gridColumn = "1 / -1";
+        preference.style.justifyContent = "flex-start";
+        preference.style.columnGap = "8px";
+        preference.style.textAlign = "left";
 
         const checkbox = document.createElement("input");
         checkbox.type = "checkbox";
@@ -210,7 +222,12 @@ export function GeometryRepairPage() {
           hideOnFutureVisits = checkbox.checked;
         });
 
-        preference.append(checkbox, "Don't show this tutorial automatically again");
+        const preferenceText = document.createElement("span");
+        preferenceText.textContent = "Don't show this tutorial again";
+        preferenceText.style.flex = "0 1 auto";
+        preferenceText.style.textAlign = "left";
+
+        preference.append(checkbox, preferenceText);
         footer.append(preference);
       },
       onDestroyed: () => {
