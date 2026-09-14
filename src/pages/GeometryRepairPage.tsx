@@ -182,6 +182,9 @@ export function GeometryRepairPage() {
   // Track the last method we toasted for so a single selection never toasts
   // twice (e.g. from transient status transitions or StrictMode remounts).
   const lastToastedMethodId = useRef<string | number | null>(null);
+  // Skip the toast for the initial auto-selected method; only toast once the
+  // user actively changes the selection.
+  const hasSeenInitialMethod = useRef(false);
   const hasStartedTour = useRef(false);
 
   const startRepairTour = () => {
@@ -252,6 +255,10 @@ export function GeometryRepairPage() {
   useEffect(() => {
     if (selectedMethod && !isProcessing && lastToastedMethodId.current !== selectedMethod.id) {
       lastToastedMethodId.current = selectedMethod.id;
+      if (!hasSeenInitialMethod.current) {
+        hasSeenInitialMethod.current = true;
+        return;
+      }
       toast.info(
         <div className="flex items-center gap-2">
           <div>
