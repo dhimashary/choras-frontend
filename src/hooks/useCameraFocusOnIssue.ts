@@ -5,12 +5,51 @@ import { flattenIssuePoints } from "@/store/geometryIssueSlice";
 import type { OrbitControls } from "three-stdlib";
 import * as THREE from "three";
 
+// Shared across all viewers so focusing on an issue uses the camera angle from
+// the viewer the user last orbited, keeping both views aligned.
+const sharedCameraDirection = new THREE.Vector3();
+let hasSharedCameraDirection = false;
+
 export function useCameraFocusOnIssue(orbitControlsRef: React.RefObject<OrbitControls | null>) {
   const { selectedIssue } = useSelector((state: RootState) => state.geometryIssue);
   const animationRef = useRef<number | null>(null);
   const initialCameraPositionRef = useRef<THREE.Vector3 | null>(null);
   const initialTargetRef = useRef<THREE.Vector3 | null>(null);
   const controlsInstanceRef = useRef<OrbitControls | null>(null);
+
+  // Capture the user's manual camera angle from whichever viewer they orbit,
+  // so a later issue focus can apply the same angle to both viewers. The "end"
+  // event only fires on user interaction, not on our programmatic animations.
+  useEffect(() => {
+    let rafId = 0;
+    let detach: (() => void) | null = null;
+
+    const attach = () => {
+      const controls = orbitControlsRef.current;
+      if (!controls) {
+        rafId = requestAnimationFrame(attach);
+        return;
+      }
+
+      const handleInteractionEnd = () => {
+        const direction = controls.object.position.clone().sub(controls.target);
+        if (direction.lengthSq() > 1e-8) {
+          sharedCameraDirection.copy(direction.normalize());
+          hasSharedCameraDirection = true;
+        }
+      };
+
+      controls.addEventListener("end", handleInteractionEnd);
+      detach = () => controls.removeEventListener("end", handleInteractionEnd);
+    };
+
+    attach();
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      detach?.();
+    };
+  }, [orbitControlsRef]);
 
   useEffect(() => {
     if (!orbitControlsRef.current) return;
@@ -91,12 +130,19 @@ export function useCameraFocusOnIssue(orbitControlsRef: React.RefObject<OrbitCon
     const paddingFactor = maxDim < 0.5 ? 4 : maxDim < 2 ? 2.5 : maxDim < 10 ? 1.9 : 1.6;
     const distance = THREE.MathUtils.clamp(fitDistance * paddingFactor, 1.5, 120);
 
-    // Preserve current camera direction so focus movement feels natural.
-    const cameraDirection = controls.object.position.clone().sub(controls.target);
-    if (cameraDirection.lengthSq() < 1e-8) {
-      cameraDirection.set(1, 1, 1);
+    // Use the shared angle (from the viewer the user last orbited) so both
+    // viewers frame the issue from the same direction. Fall back to this
+    // viewer's own direction until the user has orbited at least once.
+    let cameraDirection: THREE.Vector3;
+    if (hasSharedCameraDirection) {
+      cameraDirection = sharedCameraDirection.clone();
+    } else {
+      cameraDirection = controls.object.position.clone().sub(controls.target);
+      if (cameraDirection.lengthSq() < 1e-8) {
+        cameraDirection.set(1, 1, 1);
+      }
+      cameraDirection.normalize();
     }
-    cameraDirection.normalize();
 
     const targetCameraPos = center.clone().addScaledVector(cameraDirection, distance);
 
